@@ -5,15 +5,26 @@ if (!isset($_SESSION["username"])) {
     exit();
 }
 include 'db_connect.php';
+
+// Số lượng nhân viên trên mỗi trang
 $limit = 5;
-if (isset($_GET['page'])) {
-    $page = $_GET['page'];
-} else {
-    $page = 1;
-}
+
+// Xác định trang hiện tại
+$page = isset($_GET['page']) ? $_GET['page'] : 1;
 $start = ($page - 1) * $limit;
-$sql = "SELECT NhanVien.MaNV, NhanVien.TenNV, NhanVien.Phai, NhanVien.NoiSinh, PhongBan.TenPhong, NhanVien.Luong FROM NhanVien INNER JOIN PhongBan ON NhanVien.MaPhong = PhongBan.MaPhong LIMIT $start, $limit";
+
+// Truy vấn dữ liệu nhân viên với phân trang
+$sql = "SELECT NhanVien.MaNV, NhanVien.TenNV, NhanVien.Phai, NhanVien.NoiSinh, PhongBan.TenPhong, NhanVien.Luong 
+        FROM NhanVien 
+        INNER JOIN PhongBan ON NhanVien.MaPhong = PhongBan.MaPhong 
+        LIMIT $start, $limit";
 $result = mysqli_query($conn, $sql);
+
+// Truy vấn tổng số nhân viên
+$sql_count = "SELECT COUNT(*) AS total FROM NhanVien";
+$result_count = mysqli_query($conn, $sql_count);
+$row_count = mysqli_fetch_assoc($result_count);
+$total_pages = ceil($row_count["total"] / $limit);
 ?>
 
 <!DOCTYPE html>
@@ -33,7 +44,9 @@ $result = mysqli_query($conn, $sql);
     </div>
     <div class="container">
         <h1 class="info">THÔNG TIN NHÂN VIÊN </h1>
-        <a href="add_employee.php" class="add-button">Thêm nhân viên</a>
+        <?php if ($_SESSION["role"] == "admin"): ?> 
+            <a href="add_employee.php" class="add-button">Thêm nhân viên</a>
+        <?php endif; ?>
         <table border='1'>
             <tr class="first-column">
                 <th>Mã Nhân Viên</th>
@@ -43,9 +56,8 @@ $result = mysqli_query($conn, $sql);
                 <th>Tên Phòng</th>
                 <th>Lương</th>
                 <?php if ($_SESSION["role"] == "admin"): ?> 
-                <th>Action</th>
-               
-                        <?php endif; ?>
+                    <th>Action</th>
+                <?php endif; ?>
             </tr>
             <?php if ($result && mysqli_num_rows($result) > 0): ?>
                 <?php while ($row = mysqli_fetch_assoc($result)): ?>
@@ -59,10 +71,10 @@ $result = mysqli_query($conn, $sql);
                         <?php if ($_SESSION["role"] == "admin"): ?> 
                             <td>
                                 <div class="edit-delete-wrapper">
-                                <a href="edit_employee.php?id=<?php echo $row['MaNV']; ?>"><img src="Image/but.png" alt="Sửa" width="60" height="60"></a>
-                                 <a href="delete_employee.php?id=<?php echo $row['MaNV']; ?>"><img src="Image/dele.png" alt="Xoá" width="60" height="60"></a>
-                            </div>
-                        </td>
+                                    <a href="edit_employee.php?id=<?php echo $row['MaNV']; ?>"><img src="Image/but.png" alt="Sửa" width="60" height="60"></a>
+                                    <a href="delete_employee.php?id=<?php echo $row['MaNV']; ?>"><img src="Image/dele.png" alt="Xoá" width="60" height="60"></a>
+                                </div>
+                            </td>
                         <?php endif; ?>
                     </tr>
                 <?php endwhile; ?>
@@ -73,12 +85,6 @@ $result = mysqli_query($conn, $sql);
 
         <div class="pagination">
             <?php
-            // Tính tổng số trang
-            $sql_count = "SELECT COUNT(*) AS total FROM NhanVien";
-            $result_count = mysqli_query($conn, $sql_count);
-            $row_count = mysqli_fetch_assoc($result_count);
-            $total_pages = ceil($row_count["total"] / $limit);
-
             // Hiển thị các liên kết phân trang
             for ($i = 1; $i <= $total_pages; $i++) {
                 echo "<a href='?page=$i'>$i</a>";
